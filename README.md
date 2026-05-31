@@ -106,8 +106,11 @@ Results are JSON written by Lua:
 ## Development
 
 ```bash
-npm run dev   # tsc --watch + node --watch (two processes)
+npx tsc --watch          # terminal 1 — recompile on save
+node --watch dist/index.js  # terminal 2 — restart on change
 ```
+
+> The `npm run dev` script uses `&` to run both in parallel, which works on Unix but not in Windows PowerShell. Run them in two separate terminals instead.
 
 ## License
 
