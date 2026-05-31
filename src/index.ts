@@ -242,6 +242,117 @@ server.tool(
   }
 );
 
+// ── inspect_service ───────────────────────────────────────────────────────
+
+server.tool(
+  "inspect_service",
+  "Inspect a Roblox service (Players, ReplicatedStorage, StarterGui, Lighting, etc.) " +
+  "and list its top-level children. Essential for universal scripts that need to understand " +
+  "what's available outside Workspace.",
+  {
+    name: z.string().describe("Service name, e.g. 'Players', 'ReplicatedStorage', 'StarterGui'"),
+  },
+  async ({ name }) => {
+    const r = await call("inspect_service", { name }, 10_000);
+    if (!r.ok) return text(`Error: ${r.error}`);
+    return text(JSON.stringify(r.value, null, 2));
+  }
+);
+
+// ── screen_info ───────────────────────────────────────────────────────────
+
+server.tool(
+  "screen_info",
+  "Get current window dimensions, camera world position, and mouse position. " +
+  "Required context for writing any ESP or screen-space rendering code.",
+  {},
+  async () => {
+    const r = await call("screen_info", {}, 5_000);
+    if (!r.ok) return text(`Error: ${r.error}`);
+    return text(JSON.stringify(r.value, null, 2));
+  }
+);
+
+// ── world_to_screen ───────────────────────────────────────────────────────
+
+server.tool(
+  "world_to_screen",
+  "Project a world-space Vector3 position to screen coordinates using " +
+  "utility.WorldToScreen(). Returns screen x/y and whether the point is on screen.",
+  {
+    x: z.number().describe("World X"),
+    y: z.number().describe("World Y"),
+    z: z.number().describe("World Z"),
+  },
+  async ({ x, y, z: wz }) => {
+    const r = await call("world_to_screen", { x, y, z: wz }, 5_000);
+    if (!r.ok) return text(`Error: ${r.error}`);
+    return text(JSON.stringify(r.value, null, 2));
+  }
+);
+
+// ── get_bones ─────────────────────────────────────────────────────────────
+
+server.tool(
+  "get_bones",
+  "Get world positions (and screen projections) for all R6 bones of a specific player " +
+  "via entity:GetBonePosition(). Use this when writing or debugging ESP/aimbot scripts.",
+  {
+    player_name: z.string().describe("Exact player name as shown in the player list"),
+  },
+  async ({ player_name }) => {
+    const r = await call("get_bones", { player_name }, 10_000);
+    if (!r.ok) return text(`Error: ${r.error}`);
+    return text(JSON.stringify(r.value, null, 2));
+  }
+);
+
+// ── find_by_class ─────────────────────────────────────────────────────────
+
+server.tool(
+  "find_by_class",
+  "Find all instances of a given ClassName within a root (default: Workspace). " +
+  "Faster than a full dump when you just need instances of one type. " +
+  "Capped at 100 results. If a dump already exists, prefer grep_dump instead.",
+  {
+    class_name: z.string().describe("ClassName to search for, e.g. 'Part', 'Model', 'Humanoid'"),
+    root:  z.string().default("game.Workspace")
+             .describe("Lua path to search root (default: game.Workspace)"),
+    depth: z.number().int().min(1).max(6).default(4)
+             .describe("Max search depth (default 4)"),
+  },
+  async ({ class_name, root, depth }) => {
+    const r = await call("find_by_class", { class_name, root, depth }, 15_000);
+    if (!r.ok) return text(`Error: ${r.error}`);
+    const v = r.value as { count: number; results: unknown[] };
+    return text(`Found ${v.count} instance(s):\n\n${JSON.stringify(v.results, null, 2)}`);
+  }
+);
+
+// ── dump_subtree ──────────────────────────────────────────────────────────
+
+server.tool(
+  "dump_subtree",
+  "Dump just one branch of the instance tree instead of the full Workspace. " +
+  "Runs synchronously — fast for small subtrees, capped at 500 instances. " +
+  "Use dump_workspace for larger trees.",
+  {
+    root:  z.string().describe(
+             "Lua path to the subtree root, e.g. 'game.Workspace.AI' or " +
+             "'game.Workspace:FindFirstChild(\"Goals\")'"
+           ),
+    depth: z.number().int().min(1).max(6).default(4)
+             .describe("Max tree depth (default 4)"),
+  },
+  async ({ root, depth }) => {
+    const r = await call("dump_subtree", { root, depth }, 15_000);
+    if (!r.ok) return text(`Error: ${r.error}`);
+    const v = r.value as { root: string; count: number; truncated: boolean; tree: string };
+    const note = v.truncated ? "\n[truncated at 500 instances — use dump_workspace for the full tree]" : "";
+    return text(`${v.root}  (${v.count} instances)\n\n${v.tree}${note}`);
+  }
+);
+
 // ── Utilities ─────────────────────────────────────────────────────────────
 
 function text(s: string) {

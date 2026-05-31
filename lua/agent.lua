@@ -229,6 +229,180 @@ local function dispatch(cmd)
         start_dump(cmd)
         -- Do NOT write result now — onUpdate will write it when done
 
+    elseif cmd.type == "inspect_service" then
+        local svc_name = cmd.payload.name or "Players"
+        local svc
+        local ok = pcall(function() svc = game.GetService(svc_name) end)
+        if not ok or not svc then
+            write_result(cmd.id, false, nil, "Service not found: "..svc_name, utility.GetTickCount()-t0)
+            return
+        end
+        local name, cn
+        local ok2 = pcall(function() name=svc.Name; cn=svc.ClassName end)
+        if not ok2 then
+            write_result(cmd.id, false, nil, "Cannot access service", utility.GetTickCount()-t0)
+            return
+        end
+        local child_list = {}
+        local ok3, children = pcall(function() return svc:GetChildren() end)
+        if ok3 and children then
+            for i, c in ipairs(children) do
+                local ok4, cn2, ccn = pcall(function() return c.Name, c.ClassName end)
+                if ok4 then child_list[#child_list+1] = "["..ccn.."] "..cn2 end
+                if i >= 100 then child_list[#child_list+1] = "...truncated"; break end
+            end
+        end
+        write_result(cmd.id, true, {Name=name,ClassName=cn,ChildCount=#child_list,Children=child_list}, nil, utility.GetTickCount()-t0)
+
+    elseif cmd.type == "screen_info" then
+        local sw, sh
+        pcall(function() sw, sh = cheat.GetWindowSize() end)
+        local cx, cy, cz
+        pcall(function() local c=game.CameraPosition; cx,cy,cz=c.X,c.Y,c.Z end)
+        local mx, my
+        pcall(function() local m=utility.GetMousePos(); mx,my=m[1],m[2] end)
+        write_result(cmd.id, true, {
+            width=sw, height=sh,
+            camera = cx and {x=cx,y=cy,z=cz} or nil,
+            mouse  = mx and {x=mx,y=my}       or nil,
+        }, nil, utility.GetTickCount()-t0)
+
+    elseif cmd.type == "world_to_screen" then
+        local px = cmd.payload.x or 0
+        local py = cmd.payload.y or 0
+        local pz = cmd.payload.z or 0
+        local sx, sy, on
+        local ok = pcall(function()
+            sx, sy, on = utility.WorldToScreen(Vector3.new(px, py, pz))
+        end)
+        if ok then
+            write_result(cmd.id, true, {x=sx,y=sy,on_screen=on}, nil, utility.GetTickCount()-t0)
+        else
+            write_result(cmd.id, false, nil, "WorldToScreen failed", utility.GetTickCount()-t0)
+        end
+
+    elseif cmd.type == "get_bones" then
+        local target_name = cmd.payload.player_name
+        local R6 = {"HumanoidRootPart","Head","Torso","Left Arm","Right Arm","Left Leg","Right Leg"}
+        local ok, players = pcall(function() return entity.GetPlayers(false) end)
+        if not ok or not players then
+            write_result(cmd.id, false, nil, "entity.GetPlayers failed", utility.GetTickCount()-t0)
+            return
+        end
+        local target = nil
+        for _, p in ipairs(players) do
+            if p.Name == target_name then target=p; break end
+        end
+        if not target then
+            write_result(cmd.id, false, nil, "Player not found: "..tostring(target_name), utility.GetTickCount()-t0)
+            return
+        end
+        local bones = {}
+        for _, bone in ipairs(R6) do
+            local ok2, pos = pcall(function() return target:GetBonePosition(bone) end)
+            if ok2 and pos then bones[bone]={x=pos.X,y=pos.Y,z=pos.Z} end
+        end
+        -- Screen projection for each bone
+        for bone, pos in pairs(bones) do
+            local ok3, sx, sy, on = pcall(function()
+                return utility.WorldToScreen(Vector3.new(pos.x,pos.y,pos.z))
+            end)
+            if ok3 and on then bones[bone].sx=sx; bones[bone].sy=sy end
+        end
+        write_result(cmd.id, true, bones, nil, utility.GetTickCount()-t0)
+
+    elseif cmd.type == "find_by_class" then
+        local class_name  = cmd.payload.class_name
+        local root_path   = cmd.payload.root or "game.Workspace"
+        local max_depth   = math.min(cmd.payload.depth or 4, 6)
+        local MAX_RESULTS = 100
+        local results = {}
+
+        local function search(inst, depth)
+            if depth > max_depth or #results >= MAX_RESULTS then return end
+            local ok2, children = pcall(function() return inst:GetChildren() end)
+            if not ok2 or not children then return end
+            for _, child in ipairs(children) do
+                if #results >= MAX_RESULTS then return end
+                local cname, ccn
+                local ok3 = pcall(function() cname=child.Name; ccn=child.ClassName end)
+                if ok3 then
+                    if ccn == class_name then
+                        local entry = {Name=cname, ClassName=ccn}
+                        local ok4, pos = pcall(function() return child.Position end)
+                        if ok4 and pos then
+                            local ok5, s = pcall(fv3, pos)
+                            if ok5 then entry.pos=s end
+                        end
+                        results[#results+1] = entry
+                    end
+                    search(child, depth+1)
+                end
+            end
+        end
+
+        local fn = loadstring("return "..root_path)
+        local ok, root = pcall(fn)
+        if not ok or not root then
+            write_result(cmd.id, false, nil, "Cannot resolve: "..root_path, utility.GetTickCount()-t0)
+            return
+        end
+        search(root, 0)
+        write_result(cmd.id, true, {count=#results, results=results}, nil, utility.GetTickCount()-t0)
+
+    elseif cmd.type == "dump_subtree" then
+        local root_path = cmd.payload.root or "game.Workspace"
+        local max_depth = math.min(cmd.payload.depth or 4, 6)
+        local MAX_INST  = 500
+        local sub_lines = {}
+        local sub_count = 0
+        local truncated = false
+
+        local function sub_dump(inst, prefix, is_last, depth)
+            if sub_count >= MAX_INST then truncated=true; return end
+            local ok, name, cn = pcall(function() return inst.Name, inst.ClassName end)
+            if not ok then return end
+            local conn = is_last and ELBOW or TEE
+            local cpfx = prefix..(is_last and BLANK or PIPE)
+            sub_count = sub_count+1
+            sub_lines[#sub_lines+1] = prefix..conn.."["..cn.."] "..name..inline_props(inst)
+            local ok2, children = pcall(function() return inst:GetChildren() end)
+            if not ok2 or not children or #children==0 then return end
+            if depth >= max_depth then
+                sub_lines[#sub_lines+1] = cpfx..ELBOW.."[..."..#children.." children, depth limit]"
+                return
+            end
+            for i, child in ipairs(children) do
+                if sub_count >= MAX_INST then
+                    sub_lines[#sub_lines+1] = cpfx..ELBOW.."[...truncated at "..MAX_INST.."]"
+                    truncated=true; return
+                end
+                local cname, ccn
+                local ok3=pcall(function() cname=child.Name; ccn=child.ClassName end)
+                if ok3 then
+                    local last=(i==#children)
+                    if VALUE_CLASSES[ccn] then
+                        local c=last and ELBOW or TEE
+                        sub_lines[#sub_lines+1]=cpfx..c.."["..ccn.."] "..cname.." = "..fmt_val(child,ccn)
+                    else
+                        sub_dump(child,cpfx,last,depth+1)
+                    end
+                end
+            end
+        end
+
+        local fn = loadstring("return "..root_path)
+        local ok, root = pcall(fn)
+        if not ok or not root then
+            write_result(cmd.id, false, nil, "Cannot resolve: "..root_path, utility.GetTickCount()-t0)
+            return
+        end
+        sub_dump(root, "", true, 0)
+        write_result(cmd.id, true, {
+            root=root_path, count=sub_count, truncated=truncated,
+            tree=table.concat(sub_lines, "\n")
+        }, nil, utility.GetTickCount()-t0)
+
     else
         write_result(cmd.id, false, nil, "unknown command: "..tostring(cmd.type),
             utility.GetTickCount() - t0)
