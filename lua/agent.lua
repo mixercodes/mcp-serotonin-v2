@@ -329,6 +329,9 @@ local function dispatch(cmd)
                 if ok3 then
                     if ccn == class_name then
                         local entry = {Name=cname, ClassName=ccn}
+                        -- Include parent name so identical-named instances are distinguishable
+                        local ok_p, pname = pcall(function() return inst.Name end)
+                        if ok_p then entry.Parent=pname end
                         local ok4, pos = pcall(function() return child.Position end)
                         if ok4 and pos then
                             local ok5, s = pcall(fv3, pos)
