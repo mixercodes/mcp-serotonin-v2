@@ -1,11 +1,11 @@
 # mcp-serotonin-v2
 
-A file-based [Model Context Protocol](https://modelcontextprotocol.io/) server that connects Claude Code to the [Serotonin](https://serotonin.win/) Roblox scripting runtime. It replaces the [original WebSocket bridge](https://github.com/DeftSolutions-dev/mcp-serotonin) with a crash-safe filesystem IPC design.
+A file-based [Model Context Protocol](https://modelcontextprotocol.io/) server that connects any MCP-compatible AI assistant to the [Serotonin](https://serotonin.win/) Roblox scripting runtime. It replaces the [original WebSocket bridge](https://github.com/DeftSolutions-dev/mcp-serotonin) with a crash-safe filesystem IPC design.
 
 ## How it works
 
 ```
-Claude Code  ←→  MCP Server (Node/TypeScript)  ←→  agent.lua (Serotonin)
+AI assistant  ←→  MCP Server (Node/TypeScript)  ←→  agent.lua (Serotonin)
                         writes cmd.lua                  polls cmd.lua
                         reads  result.json              writes result.json
 ```
@@ -18,7 +18,7 @@ This eliminates the crash-under-load issues of the original WebSocket eval bridg
 
 - Node.js 18+
 - Serotonin (with `agent.lua` loaded)
-- Claude Code with MCP support
+- Any MCP-compatible AI assistant (Claude Code, Cursor, etc.)
 
 ## Setup
 
@@ -30,7 +30,7 @@ npm install
 npm run build
 ```
 
-**2. Configure Claude Code** — add to your `.mcp.json`:
+**2. Configure your AI client** — add to your `.mcp.json`:
 
 ```json
 {
@@ -45,7 +45,7 @@ npm run build
 
 **3. Load the Lua agent** — open `lua/agent.lua` in Serotonin's Scripting tab and run it. The HUD in the bottom-right corner will show `Agent: idle` when ready.
 
-**4. Verify the connection** — in Claude Code, run the `ping` tool. You should get `pong — agent is live`.
+**4. Verify the connection** — run the `ping` tool from your AI client. You should get `pong — agent is live`.
 
 ## Tools
 
