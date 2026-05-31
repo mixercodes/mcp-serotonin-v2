@@ -1,5 +1,5 @@
 -- agent.lua  (replaces bridge.lua)
--- File-based MCP agent for Claude Code.
+-- File-based MCP agent for AI assistants.
 -- No WebSocket, no crash risk. One command at a time via the filesystem.
 --
 -- IPC protocol:
@@ -7,7 +7,7 @@
 --   Lua  writes  agent/result.json → JSON result, JSON.parse()d in Node
 --   Lua  writes  agent/status.json → progress during async ops (dump etc.)
 --
--- Commands: ping | eval | dump | inspect | players
+-- Commands: ping | eval | dump
 
 local AGENT_DIR   = "agent"
 local CMD_FILE    = AGENT_DIR .. "/cmd.lua"
