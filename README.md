@@ -1,6 +1,6 @@
 # mcp-serotonin-v2
 
-A file-based [Model Context Protocol](https://modelcontextprotocol.io/) server that connects Claude Code to the [Serotonin](https://serotonin.win/) Roblox scripting runtime. It replaces the original WebSocket bridge with a crash-safe filesystem IPC design.
+A file-based [Model Context Protocol](https://modelcontextprotocol.io/) server that connects Claude Code to the [Serotonin](https://serotonin.win/) Roblox scripting runtime. It replaces the [original WebSocket bridge](https://github.com/DeftSolutions-dev/mcp-serotonin) with a crash-safe filesystem IPC design.
 
 ## How it works
 
