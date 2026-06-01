@@ -283,7 +283,12 @@ local function dispatch(cmd)
 
     elseif cmd.type == "get_bones" then
         local target_name = cmd.payload.player_name
-        local R6 = {"HumanoidRootPart","Head","Torso","Left Arm","Right Arm","Left Leg","Right Leg"}
+        local R6  = {"HumanoidRootPart","Head","Torso","Left Arm","Right Arm","Left Leg","Right Leg"}
+        local R15 = {"HumanoidRootPart","Head","UpperTorso","LowerTorso",
+                     "LeftUpperArm","LeftLowerArm","LeftHand",
+                     "RightUpperArm","RightLowerArm","RightHand",
+                     "LeftUpperLeg","LeftLowerLeg","LeftFoot",
+                     "RightUpperLeg","RightLowerLeg","RightFoot"}
         local ok, players = pcall(function() return entity.GetPlayers(false) end)
         if not ok or not players then
             write_result(cmd.id, false, nil, "entity.GetPlayers failed", utility.GetTickCount()-t0)
@@ -297,8 +302,14 @@ local function dispatch(cmd)
             write_result(cmd.id, false, nil, "Player not found: "..tostring(target_name), utility.GetTickCount()-t0)
             return
         end
+        -- Detect rig type by checking whether UpperTorso exists in the character
+        local bone_list = R6
+        local char = game.Workspace:FindFirstChild(target_name)
+        if char and char:FindFirstChild("UpperTorso") then
+            bone_list = R15
+        end
         local bones = {}
-        for _, bone in ipairs(R6) do
+        for _, bone in ipairs(bone_list) do
             local ok2, pos = pcall(function() return target:GetBonePosition(bone) end)
             if ok2 and pos then bones[bone]={x=pos.X,y=pos.Y,z=pos.Z} end
         end
