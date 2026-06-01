@@ -234,6 +234,21 @@ server.tool(
         if ok2 and hrp then entry.Position = {hrp.X, hrp.Y, hrp.Z} end
         result[i] = entry
       end
+      if not ${enemies_only} then
+        local lp_ok, lp = pcall(function() return game.GetService("Players").LocalPlayer end)
+        if lp_ok and lp then
+          local lp_entry = {Name = lp.Name, is_local = true}
+          local lp_char = game.Workspace:FindFirstChild(lp.Name)
+          if lp_char then
+            local hrp = lp_char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+              local pos_ok, pos = pcall(function() return hrp.Position end)
+              if pos_ok and pos then lp_entry.Position = {pos.X, pos.Y, pos.Z} end
+            end
+          end
+          result[#result+1] = lp_entry
+        end
+      end
       return result
     `;
     const r = await call("eval", { code }, 10_000);
@@ -350,6 +365,26 @@ server.tool(
     const v = r.value as { root: string; count: number; truncated: boolean; tree: string };
     const note = v.truncated ? "\n[truncated at 500 instances — use dump_workspace for the full tree]" : "";
     return text(`${v.root}  (${v.count} instances)\n\n${v.tree}${note}`);
+  }
+);
+
+// ── get_attributes ────────────────────────────────────────────────────────
+
+server.tool(
+  "get_attributes",
+  "Get all attributes on a specific instance. Attributes are invisible to dumps — " +
+  "use this when grep_dump finds nothing and you suspect the data is stored as attributes.",
+  {
+    path: z.string().describe(
+      "Lua path to the instance, e.g. 'game.Workspace:FindFirstChild(\"Player1\")'"
+    ),
+  },
+  async ({ path: luaPath }) => {
+    const r = await call("get_attributes", { path: luaPath }, 10_000);
+    if (!r.ok) return text(`Error: ${r.error}`);
+    const attrs = r.value as { name: string; type: string; value: unknown }[];
+    if (!Array.isArray(attrs) || attrs.length === 0) return text("No attributes found.");
+    return text(JSON.stringify(attrs, null, 2));
   }
 );
 

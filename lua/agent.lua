@@ -276,7 +276,7 @@ local function dispatch(cmd)
             sx, sy, on = utility.WorldToScreen(Vector3.new(px, py, pz))
         end)
         if ok then
-            write_result(cmd.id, true, {x=sx,y=sy,on_screen=on}, nil, utility.GetTickCount()-t0)
+            write_result(cmd.id, true, {x=sx, y=sy, on_screen=on}, nil, utility.GetTickCount()-t0)
         else
             write_result(cmd.id, false, nil, "WorldToScreen failed", utility.GetTickCount()-t0)
         end
@@ -289,36 +289,46 @@ local function dispatch(cmd)
                      "RightUpperArm","RightLowerArm","RightHand",
                      "LeftUpperLeg","LeftLowerLeg","LeftFoot",
                      "RightUpperLeg","RightLowerLeg","RightFoot"}
-        local ok, players = pcall(function() return entity.GetPlayers(false) end)
-        if not ok or not players then
-            write_result(cmd.id, false, nil, "entity.GetPlayers failed", utility.GetTickCount()-t0)
-            return
+        -- Try entity first (remote players), then fall back to character parts (local player)
+        local target_entity = nil
+        local ok, eplayers = pcall(function() return entity.GetPlayers(false) end)
+        if ok and eplayers then
+            for _, p in ipairs(eplayers) do
+                if p.Name == target_name then target_entity=p; break end
+            end
         end
-        local target = nil
-        for _, p in ipairs(players) do
-            if p.Name == target_name then target=p; break end
-        end
-        if not target then
+        local char = game.Workspace:FindFirstChild(target_name)
+        if not target_entity and not char then
             write_result(cmd.id, false, nil, "Player not found: "..tostring(target_name), utility.GetTickCount()-t0)
             return
         end
-        -- Detect rig type by checking whether UpperTorso exists in the character
+        -- Detect rig type from character
         local bone_list = R6
-        local char = game.Workspace:FindFirstChild(target_name)
-        if char and char:FindFirstChild("UpperTorso") then
-            bone_list = R15
-        end
+        if char and char:FindFirstChild("UpperTorso") then bone_list = R15 end
         local bones = {}
         for _, bone in ipairs(bone_list) do
-            local ok2, pos = pcall(function() return target:GetBonePosition(bone) end)
-            if ok2 and pos then bones[bone]={x=pos.X,y=pos.Y,z=pos.Z} end
+            local pos = nil
+            if target_entity then
+                local ok2, p = pcall(function() return target_entity:GetBonePosition(bone) end)
+                if ok2 and p then pos = p end
+            elseif char then
+                local part = char:FindFirstChild(bone)
+                if part then
+                    local ok2, p = pcall(function() return part.Position end)
+                    if ok2 and p then pos = p end
+                end
+            end
+            -- Filter zero-position bones (bone doesn't exist in this rig)
+            if pos and not (pos.X == 0 and pos.Y == 0 and pos.Z == 0) then
+                bones[bone] = {x=pos.X, y=pos.Y, z=pos.Z}
+            end
         end
-        -- Screen projection for each bone
+        -- Screen projection for each bone (always include on_screen flag)
         for bone, pos in pairs(bones) do
             local ok3, sx, sy, on = pcall(function()
-                return utility.WorldToScreen(Vector3.new(pos.x,pos.y,pos.z))
+                return utility.WorldToScreen(Vector3.new(pos.x, pos.y, pos.z))
             end)
-            if ok3 and on then bones[bone].sx=sx; bones[bone].sy=sy end
+            if ok3 then bones[bone].sx=sx; bones[bone].sy=sy; bones[bone].on_screen=on end
         end
         write_result(cmd.id, true, bones, nil, utility.GetTickCount()-t0)
 
@@ -416,6 +426,29 @@ local function dispatch(cmd)
             root=root_path, count=sub_count, truncated=truncated,
             tree=table.concat(sub_lines, "\n")
         }, nil, utility.GetTickCount()-t0)
+
+    elseif cmd.type == "get_attributes" then
+        local path = cmd.payload.path
+        local fn, err = loadstring("return "..path)
+        if not fn then
+            write_result(cmd.id, false, nil, "bad path: "..tostring(err), utility.GetTickCount()-t0)
+            return
+        end
+        local ok, inst = pcall(fn)
+        if not ok or inst == nil then
+            write_result(cmd.id, false, nil, "instance not found", utility.GetTickCount()-t0)
+            return
+        end
+        local ok2, attrs = pcall(function() return inst:GetAttributes() end)
+        if not ok2 then
+            write_result(cmd.id, false, nil, "GetAttributes failed: "..tostring(attrs), utility.GetTickCount()-t0)
+            return
+        end
+        local result = {}
+        for _, attr in pairs(attrs) do
+            result[#result+1] = {name=attr.Name, type=attr.TypeName, value=attr.Value}
+        end
+        write_result(cmd.id, true, result, nil, utility.GetTickCount()-t0)
 
     else
         write_result(cmd.id, false, nil, "unknown command: "..tostring(cmd.type),

@@ -65,6 +65,7 @@ npm run build
 | `get_bones` | Get R6 bone positions and screen projections for a specific player |
 | `screen_info` | Get window dimensions, camera world position, and mouse position |
 | `world_to_screen` | Project a world-space Vector3 to screen coordinates |
+| `get_attributes` | Get all attributes on a specific instance (invisible to dumps) |
 | `get_ui` | Read a Serotonin UI widget value |
 | `set_ui` | Write a Serotonin UI widget value |
 
