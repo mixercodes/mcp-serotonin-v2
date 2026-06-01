@@ -234,6 +234,15 @@ server.tool(
         if ok2 and hrp then entry.Position = {hrp.X, hrp.Y, hrp.Z} end
         result[i] = entry
       end
+      if not ${enemies_only} then
+        local lp = entity.GetLocalPlayer()
+        if lp then
+          local lp_entry = {Name = lp.Name, is_local = true}
+          local ok2, hrp = pcall(function() return lp:GetBonePosition("HumanoidRootPart") end)
+          if ok2 and hrp then lp_entry.Position = {hrp.X, hrp.Y, hrp.Z} end
+          result[#result+1] = lp_entry
+        end
+      end
       return result
     `;
     const r = await call("eval", { code }, 10_000);
