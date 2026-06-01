@@ -54,11 +54,17 @@ npm run build
 | `ping` | Check if `agent.lua` is loaded and responding |
 | `eval` | Run a Lua expression and return the result |
 | `dump_workspace` | Trigger a full Workspace tree dump (chunked, async) |
+| `dump_subtree` | Dump one branch of the instance tree (synchronous, capped at 500 instances) |
 | `list_dumps` | List saved dump files, newest first |
 | `read_dump` | Page through a dump file by line offset |
 | `grep_dump` | Regex-search a dump file for instance names or classes |
 | `inspect` | Inspect a specific instance by its Lua path |
+| `inspect_service` | List top-level children of a Roblox service (Players, ReplicatedStorage, etc.) |
+| `find_by_class` | Find all instances of a given ClassName within a root (capped at 100) |
 | `players` | List players with positions from `entity.GetPlayers` |
+| `get_bones` | Get R6 bone positions and screen projections for a specific player |
+| `screen_info` | Get window dimensions, camera world position, and mouse position |
+| `world_to_screen` | Project a world-space Vector3 to screen coordinates |
 | `get_ui` | Read a Serotonin UI widget value |
 | `set_ui` | Write a Serotonin UI widget value |
 
