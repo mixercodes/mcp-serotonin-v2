@@ -2,10 +2,11 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import path from "path";
+import fs from "fs";
 import {
   call, callAsync, readStatus, listDumpFiles, readDumpLines, grepDump,
 } from "./ipc.js";
-import { DUMPS_DIR, TIMEOUT_DUMP } from "./config.js";
+import { DUMPS_DIR, TIMEOUT_DUMP, CMD_FILE, RESULT_FILE, STATUS_FILE } from "./config.js";
 
 const server = new McpServer({
   name: "serotonin",
@@ -389,6 +390,11 @@ function text(s: string) {
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────
+
+// Clear stale IPC files from any previous session to avoid cold-start timeouts
+for (const f of [CMD_FILE, RESULT_FILE, STATUS_FILE]) {
+  try { fs.unlinkSync(f); } catch {}
+}
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
