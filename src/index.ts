@@ -234,21 +234,6 @@ server.tool(
         if ok2 and hrp then entry.Position = {hrp.X, hrp.Y, hrp.Z} end
         result[i] = entry
       end
-      if not ${enemies_only} then
-        local lp_ok, lp = pcall(function() return game.GetService("Players").LocalPlayer end)
-        if lp_ok and lp then
-          local lp_entry = {Name = lp.Name, is_local = true}
-          local lp_char = game.Workspace:FindFirstChild(lp.Name)
-          if lp_char then
-            local hrp = lp_char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-              local pos_ok, pos = pcall(function() return hrp.Position end)
-              if pos_ok and pos then lp_entry.Position = {pos.X, pos.Y, pos.Z} end
-            end
-          end
-          result[#result+1] = lp_entry
-        end
-      end
       return result
     `;
     const r = await call("eval", { code }, 10_000);
