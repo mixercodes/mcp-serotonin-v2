@@ -62,7 +62,7 @@ npm run build
 | `inspect_service` | List top-level children of a Roblox service (Players, ReplicatedStorage, etc.) |
 | `find_by_class` | Find all instances of a given ClassName within a root (capped at 100) |
 | `players` | List players with positions from `entity.GetPlayers` |
-| `get_bones` | Get R6 bone positions and screen projections for a specific player |
+| `get_bones` | Get bone positions and screen projections for a specific player (auto-detects R6/R15) |
 | `screen_info` | Get window dimensions, camera world position, and mouse position |
 | `world_to_screen` | Project a world-space Vector3 to screen coordinates |
 | `get_attributes` | Get all attributes on a specific instance (invisible to dumps) |
