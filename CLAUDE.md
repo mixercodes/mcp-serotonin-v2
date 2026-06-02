@@ -57,7 +57,7 @@ These affect how you write Lua code in eval payloads and agent.lua handlers:
 - `game.GetService("Players").LocalPlayer` is **nil** — use `entity.GetLocalPlayer()` instead
 - `entity.GetPlayers(false)` excludes the local player — local player only accessible via `entity.GetLocalPlayer()`
 - `game.GetService` uses dot syntax: `game.GetService("Players")`, not `game:GetService(...)`
-- `GetBonePosition` returns `Vector3(0,0,0)` for bones that don't exist in the rig — not nil. Filter zero-position results before using them
+- `GetBonePosition` can return `nil` for bones that don't exist in the rig — always guard with `if not b then`. Also filter zero-vector results for bones that exist but have no valid position
 - R15 characters use `UpperTorso`/`LowerTorso`/`LeftUpperArm` etc. Detect rig type by checking `char:FindFirstChild("UpperTorso")`
 - `GetAttributes()` returns an array of `{Name, TypeName, Value}` tables — iterate with `pairs`, not as a flat dict
 
