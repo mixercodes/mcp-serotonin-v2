@@ -1,7 +1,5 @@
 -- agent.lua  (replaces bridge.lua)
 -- File-based MCP agent for AI assistants.
--- No WebSocket, no crash risk. One command at a time via the filesystem.
---
 -- IPC protocol:
 --   Node writes  agent/cmd.lua     → Lua table literal, loadstring()ed here
 --   Lua  writes  agent/result.json → JSON result, JSON.parse()d in Node

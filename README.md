@@ -1,6 +1,6 @@
 # mcp-serotonin-v2
 
-A file-based [Model Context Protocol](https://modelcontextprotocol.io/) server that connects any MCP-compatible AI assistant to the [Serotonin](https://serotonin.win/) Roblox scripting runtime. It replaces the [original WebSocket bridge](https://github.com/DeftSolutions-dev/mcp-serotonin) with a crash-safe filesystem IPC design.
+A file-based [Model Context Protocol](https://modelcontextprotocol.io/) server that connects any MCP-compatible AI assistant to the [Serotonin](https://serotonin.win/) Roblox scripting runtime. It replaces the [original bridge](https://github.com/DeftSolutions-dev/mcp-serotonin) with a crash-safe filesystem IPC design.
 
 ## How it works
 
@@ -12,7 +12,7 @@ AI assistant  ←→  MCP Server (Node/TypeScript)  ←→  agent.lua (Serotonin
 
 Node writes a Lua table literal to `agent/cmd.lua`. The Lua agent polls for it on `onUpdate`, executes it, and writes the result to `agent/result.json`. For heavy operations like workspace dumps, the agent chunks the work across frames and writes progress to `agent/status.json` while Node polls for completion.
 
-This eliminates the crash-under-load issues of the original WebSocket eval bridge.
+This eliminates the crash-under-load issues of the original eval bridge.
 
 ## Requirements
 
