@@ -4,3 +4,4 @@ dist/
 # Claude local config
 .claude/
 .mcp.json
+CLAUDE.md
